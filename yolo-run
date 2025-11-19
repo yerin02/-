@@ -39,15 +39,16 @@ cd "$WORKDIR"
 echo "Running YOLOv3 on $(basename "$TMPIMG") ..."
 LOGFILE="$DATA_DIR/$(basename "$TMPIMG")_log.txt"
 
-# darknet의 원본 출력 + 동시에 로그 저장
+# stdout을 실시간으로 초 단위 변환 + 로그 저장
 ./darknet detector test cfg/coco.data cfg/yolov3.cfg "$WEIGHTS" "$TMPIMG" \
-  -dont_show -ext_output | tee "$LOGFILE"
+  -dont_show -ext_output | \
+  awk -v img="$(basename "$TMPIMG")" '/Predicted in/ {printf "%s: Predicted in %.3f seconds\n", img, $4/1000; next} {print}' | tee "$LOGFILE"
 
-# --- 결과 이미지 위치 확인 ---
+# --- 결과 이미지 호스트 공유 폴더로 복사 ---
 OUTPUT="$WORKDIR/predictions.jpg"
-
 if [ -f "$OUTPUT" ]; then
-  echo "Result saved to $OUTPUT"
+  cp "$OUTPUT" "$DATA_DIR/predictions.jpg"
+  echo "Result saved to $DATA_DIR/predictions.jpg"
 else
   echo "predictions.jpg not found"
   exit 5
