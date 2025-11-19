@@ -38,5 +38,7 @@ RUN chmod +x /usr/local/bin/yolo-run
 RUN dos2unix /usr/local/bin/yolo-run
 
 
-RUN curl -k -o yolov3.weights https://pjreddie.com/media/files/yolov3.weights
+COPY yolov3.weights /darknet/yolov3.weights
 
+
+RUN apt-get update && apt-get install -y curl
