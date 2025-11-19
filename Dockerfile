@@ -37,8 +37,15 @@ RUN chmod +x /usr/local/bin/yolo-run
 
 RUN dos2unix /usr/local/bin/yolo-run
 
+# 기존
+# COPY yolov3.weights /darknet/yolov3.weights
 
-COPY yolov3.weights /darknet/yolov3.weights
+# 1. 필요한 패키지 설치
+#RUN apt-get update && apt-get install -y wget ca-certificates
+
+
+# 2. weights 다운로드
+RUN wget --no-check-certificate https://pjreddie.com/media/files/yolov3.weights -O /darknet/yolov3.weights
 
 
 RUN apt-get update && apt-get install -y curl
