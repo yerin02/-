@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     libopencv-dev \
     python3-opencv \
+    dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
 # --- Fix: add missing pkg-config file for OpenCV (Darknet requires it) ---
@@ -33,3 +34,9 @@ RUN make -j"$(nproc)"
 # --- Add YOLO run script ---
 COPY ./yolo-run /usr/local/bin/yolo-run
 RUN chmod +x /usr/local/bin/yolo-run
+
+RUN dos2unix /usr/local/bin/yolo-run
+
+
+RUN curl -k -o yolov3.weights https://pjreddie.com/media/files/yolov3.weights
+
