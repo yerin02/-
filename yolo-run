@@ -9,7 +9,12 @@ fi
 
 INPUT="$1"
 WORKDIR=/darknet          # Darknet 설치 경로
-DATA_DIR=/data            # 호스트와 공유되는 경로
+DATA_DIR=/data            # 결과/로그 저장 폴더 (컨테이너 내부)
+HOST_DIR=/host_data       # 호스트와 마운트된 경로 (docker run -v <호스트경로>:/host_data)
+
+# --- 결과/로그 폴더 자동 생성 ---
+mkdir -p "$DATA_DIR"
+mkdir -p "$HOST_DIR"
 
 # --- 입력 이미지 처리 ---
 if [[ "$INPUT" =~ ^https?:// ]]; then
@@ -39,16 +44,20 @@ cd "$WORKDIR"
 echo "Running YOLOv3 on $(basename "$TMPIMG") ..."
 LOGFILE="$DATA_DIR/$(basename "$TMPIMG")_log.txt"
 
-# stdout을 실시간으로 초 단위 변환 + 로그 저장
 ./darknet detector test cfg/coco.data cfg/yolov3.cfg "$WEIGHTS" "$TMPIMG" \
   -dont_show -ext_output | \
   awk -v img="$(basename "$TMPIMG")" '/Predicted in/ {printf "%s: Predicted in %.3f seconds\n", img, $4/1000; next} {print}' | tee "$LOGFILE"
 
-# --- 결과 이미지 호스트 공유 폴더로 복사 ---
+# --- 결과 이미지 자동 복사 (컨테이너 내부 /data와 호스트 모두) ---
 OUTPUT="$WORKDIR/predictions.jpg"
 if [ -f "$OUTPUT" ]; then
+  # 컨테이너 내부 /data
   cp "$OUTPUT" "$DATA_DIR/predictions.jpg"
-  echo "Result saved to $DATA_DIR/predictions.jpg"
+
+  # 호스트 마운트 폴더
+  cp "$OUTPUT" "$HOST_DIR/predictions.jpg"
+
+  echo "Result saved to $DATA_DIR/predictions.jpg and also copied to host at $HOST_DIR/predictions.jpg"
 else
   echo "predictions.jpg not found"
   exit 5
