@@ -1,0 +1,48 @@
+#!/bin/bash
+set -e
+
+# --- 입력 확인 ---
+if [ -z "$1" ]; then
+  echo "Usage: yolo-run <image-path-or-URL>"
+  exit 1
+fi
+
+INPUT="$1"
+WORKDIR=/darknet   # 컨테이너 내 Darknet 설치 경로
+
+# --- 이미지 처리 ---
+if [[ "$INPUT" =~ ^https?:// ]]; then
+  # URL 입력이면 /data/input.jpg로 다운로드
+  TMPIMG="/data/input.jpg"
+  echo "Downloading image from $INPUT ..."
+  wget -q -O "$TMPIMG" "$INPUT" || { echo "download fail"; exit 2; }
+else
+  # 로컬 파일이면 그대로 사용
+  if [ -f "$INPUT" ]; then
+    TMPIMG="$INPUT"  # 경로 그대로 사용 (컨테이너 내 /darknet/data/eagle.jpg 등)
+  else
+    echo "File not found: $INPUT"
+    exit 3
+  fi
+fi
+
+# --- 가중치 확인 ---
+WEIGHTS="$WORKDIR/yolov3.weights"
+if [ ! -f "$WEIGHTS" ]; then
+  echo "Downloading yolov3.weights..."
+  wget -q -O "$WEIGHTS" https://pjreddie.com/media/files/yolov3.weights || { echo "weights download failed"; exit 4; }
+fi
+
+# --- YOLO 실행 ---
+cd "$WORKDIR"
+./darknet detector test cfg/coco.data cfg/yolov3.cfg "$WEIGHTS" "$TMPIMG" -dont_show -ext_output
+
+# --- 결과 이동 ---
+OUTPUT_FILE="$WORKDIR/predictions.jpg"
+if [ -f "$OUTPUT_FILE" ]; then
+  # 컨테이너 안에서 바로 확인할 수 있도록 원 위치에 둠
+  echo "Result saved to $OUTPUT_FILE"
+else
+  echo "predictions.jpg not found"
+  exit 5
+fi
